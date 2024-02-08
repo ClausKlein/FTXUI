@@ -1,39 +1,92 @@
-// Copyright 2020 Arthur Sonzogni. All rights reserved.
-// Use of this source code is governed by the MIT license that can be found in
-// the LICENSE file.
-#include <memory>  // for shared_ptr, __shared_ptr_access
-#include <string>  // for operator+, to_string
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/screen.hpp>
 
-#include "ftxui/component/captured_mouse.hpp"  // for ftxui
-#include "ftxui/component/component.hpp"  // for Button, Horizontal, Renderer
-#include "ftxui/component/component_base.hpp"      // for ComponentBase
-#include "ftxui/component/screen_interactive.hpp"  // for ScreenInteractive
-#include "ftxui/dom/elements.hpp"  // for separator, gauge, text, Element, operator|, vbox, border
+#include <array>
+#include <iostream>
+#include <string>
 
 using namespace ftxui;
+using namespace std;
+
+enum class ConnectionMethod { ByName, ByAddress };
+
+void promptForConnectionMethod();
+
+void promptForServerName();
+void promptForServerAddress();
+void promptForServerManager();
 
 int main() {
-  int value = 50;
+  promptForConnectionMethod();
 
-  // The tree of components. This defines how to navigate using the keyboard.
-  auto buttons = Container::Horizontal({
-      Button("Decrease", [&] { value--; }),
-      Button("Increase", [&] { value++; }),
-  });
-
-  // Modify the way to render them on screen:
-  auto component = Renderer(buttons, [&] {
-    return vbox({
-               text("value = " + std::to_string(value)),
-               separator(),
-               gauge(value * 0.01f),
-               separator(),
-               buttons->Render(),
-           }) |
-           border;
-  });
-
-  auto screen = ScreenInteractive::FitComponent();
-  screen.Loop(component);
   return 0;
+}
+
+void promptForConnectionMethod() {
+  auto screen = ScreenInteractive::TerminalOutput();
+  std::vector<std::string> connect_choice{
+      "Connect by name...",
+      "Connect by address and port...",
+      "Exit",
+  };
+  int selected = 0;
+  MenuOption option;
+  option.on_enter = [&] {
+    if (selected == 0) {
+      promptForServerManager();
+    } else if (selected == 1) {
+      promptForServerAddress();
+    } else if (selected == 2) {
+      screen.Exit();
+    }
+  };
+
+  auto connect_menu = Menu(&connect_choice, &selected, option);
+
+  auto renderer = Renderer(connect_menu, [&] {
+    return vbox({
+               text("Welcome, my client!") | color(Color::Red3Bis) | bold |
+                   center,
+               text(""),
+               text("Selected = " + std::to_string(selected)) |
+                   color(Color::LightGreenBis) | bold | center,
+
+               text(""),
+               text("Welcome to my first working multiplayer game, Medium "
+                    "Boxes.") |
+                   color(Color::LightSkyBlue1),
+               text(""),
+               text("Now, choose how you'd prefer to connect to a server!") |
+                   color(Color::LightCyan3) | center,
+               text(""),
+               connect_menu->Render() | border,
+           }) |
+           center;
+  });
+
+  screen.Loop(renderer);
+}
+
+void promptForServerName() {}
+
+void promptForServerAddress() {
+  auto screen = ScreenInteractive::TerminalOutput();
+}
+
+void promptForServerManager() {
+  auto screen = ScreenInteractive::TerminalOutput();
+  auto renderer = Renderer([&] {
+    return vbox({
+               text("Now, please enter the server manager's address and "
+                    "port, so that you'll be able to see all the available "
+                    "public servers!") |
+                   color(Color::LightGreenBis),
+               gauge(0),
+           }) |
+           center;
+  });
+
+  screen.Loop(renderer);
 }
